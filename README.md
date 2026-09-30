@@ -1,36 +1,155 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plataforma Comando - Frontend de Cursos
 
-## Getting Started
+## 1. Descrição do Projeto
 
-First, run the development server:
+Interface da área do aluno para a plataforma de ensino Comando. A aplicação permite a visualização de cursos em layout inspirado em plataformas de streaming, detalhamento de cursos específicos e navegação pela estrutura hierárquica de módulos e aulas.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+O projeto foi desenvolvido em arquitetura modular orientada a domínios (feature-based), utilizando React Server Components para otimização de requisições e consumo direto da API REST.
+
+## 2. Tecnologias Utilizadas
+
+* Next.js (App Router)
+
+* React
+
+* TypeScript
+
+* Tailwind CSS
+
+* Git
+
+## 3. Como Instalar
+
+Clone o repositório e acesse a branch da funcionalidade:
+
+```
+git clone https://github.com/Heron-Pires/desafio_front
+cd comando-web
+git checkout feature/frontend-courses
+
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Instale as dependências:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
 
-## Learn More
+## 4. Como Configurar o Ambiente
 
-To learn more about Next.js, take a look at the following resources:
+Copie o arquivo de variáveis de exemplo para o arquivo local:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+cp .env.example .env.local
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
 
-## Deploy on Vercel
+## 5. Como Configurar a URL da API
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Abra o arquivo `.env.local` e configure a variável `NEXT_PUBLIC_API_URL` com o endereço base da API backend:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+```
+
+Substitua `http://localhost:3001` pelo host e porta onde o backend estiver em execução.
+
+## 6. Como Executar o Projeto
+
+### Ambiente de Desenvolvimento
+
+```
+npm run dev
+
+```
+
+Acesse a aplicação em `http://localhost:3000`.
+
+### Build de Produção
+
+```
+npm run build
+npm start
+
+```
+
+### Verificação de Tipos e Lint
+
+```
+npm run lint
+
+```
+
+## 7. Rotas Disponíveis
+
+* `/`
+  Redireciona automaticamente para `/courses`.
+
+* `/courses`
+  Página de listagem geral com catálogo de cursos disponíveis, apresentando miniatura, título, categoria, descrição resumida e quantidade de módulos.
+
+* `/courses/:id`
+  Página de detalhes do curso. Apresenta as informações gerais do curso selecionado e a relação completa de módulos e suas respectivas aulas.
+
+## 8. Observações Necessárias para Integração
+
+A aplicação consome a API backend exclusivamente por meio do serviço centralizado (`services/api.ts` e `features/courses/services/courses.service.ts`). O backend deve disponibilizar os seguintes contratos:
+
+### GET /courses
+
+Retorna a lista de cursos cadastrados.
+
+Formato esperado:
+
+```
+[
+  {
+    "id": "1",
+    "title": "Desenvolvimento Web Fullstack",
+    "category": "Programação",
+    "shortDescription": "Aprenda a construir aplicações modernas de ponta a ponta.",
+    "thumbnail": "https://exemplo.com/thumb.jpg",
+    "modulesCount": 2
+  }
+]
+
+```
+
+### GET /courses/:id
+
+Retorna os detalhes de um curso específico identificado por `:id`.
+
+Formato esperado:
+
+```
+{
+  "id": "1",
+  "title": "Desenvolvimento Web Fullstack",
+  "category": "Programação",
+  "description": "Descrição completa e detalhada sobre o curso.",
+  "thumbnail": "https://exemplo.com/thumb.jpg",
+  "modules": [
+    {
+      "id": "m1",
+      "title": "Módulo 1 - Fundamentos",
+      "lessons": [
+        { "id": "l1", "title": "Aula 1 - Variáveis" },
+        { "id": "l2", "title": "Aula 2 - Tipos de dados" }
+      ]
+    }
+  ]
+}
+
+```
+
+### Tratamento de Respostas e Códigos HTTP
+
+* `200 OK`: Renderização normal da listagem ou dos detalhes.
+
+* `200 OK com array vazio []`: Dispara o componente de lista vazia (`Nenhum curso disponível.`).
+
+* `404 Not Found`: Dispara a tela nativa de erro 404 (`Curso não encontrado`) com link de retorno para `/courses`.
+
+* `500 Internal Server Error` ou falha de conexão: Dispara a tela de barreira de erro (`Não foi possível carregar os cursos.`) com opção para nova tentativa.
