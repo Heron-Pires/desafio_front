@@ -2,17 +2,29 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 export function CourseCardSkeleton() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
-      <Skeleton className="aspect-video w-full rounded-none" />
-      <div className="flex flex-1 flex-col justify-between p-5">
+    <div className="relative flex flex-col overflow-hidden border border-[#262833] bg-[#181920] chamfer-card">
+      {/* Top telemetry bar skeleton */}
+      <div className="flex items-center justify-between border-b border-[#262833] bg-[#111217] px-4 py-1.5">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-16" />
+      </div>
+
+      {/* Thumbnail skeleton */}
+      <div className="relative aspect-video w-full">
+        <Skeleton className="h-full w-full" />
+      </div>
+
+      {/* Content skeleton */}
+      <div className="flex flex-1 flex-col justify-between p-5 space-y-4">
         <div>
-          <Skeleton className="h-5 w-3/4 rounded" />
-          <Skeleton className="mt-3 h-4 w-full rounded" />
-          <Skeleton className="mt-1.5 h-4 w-2/3 rounded" />
+          <Skeleton className="h-5 w-4/5" />
+          <Skeleton className="mt-3 h-3.5 w-full" />
+          <Skeleton className="mt-1.5 h-3.5 w-3/4" />
         </div>
-        <div className="mt-5 flex items-center justify-between border-t border-neutral-800/80 pt-3">
-          <Skeleton className="h-4 w-20 rounded" />
-          <Skeleton className="h-4 w-14 rounded" />
+
+        <div className="border-t border-[#262833] pt-3.5 flex items-center justify-between">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-4 w-28" />
         </div>
       </div>
     </div>

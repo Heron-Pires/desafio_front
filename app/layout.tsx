@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Plataforma Comando | Cursos de Tecnologia",
+  title: "PLATAFORMA COMANDO // Ambiente Tático de Aprendizado",
   description:
-    "Interface da área do aluno da plataforma de ensino Comando. Cursos práticos em layout inspirado em streaming.",
+    "Ambiente de aprendizado para cursos de tecnologia com estilo visual inspirado na estética tática e industrial de Arknights: Endfield.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100 selection:bg-neutral-800 selection:text-neutral-50">
+      <body className="min-h-full flex flex-col bg-[#0B0C10] text-[#CBD5E1] tactical-grid-bg selection:bg-[#7C3AED] selection:text-white">
         {children}
       </body>
     </html>
