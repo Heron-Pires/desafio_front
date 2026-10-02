@@ -17,7 +17,8 @@ export const coursesService = {
    * Endpoint: GET /courses/:id
    */
   async getById(id: string | number): Promise<CourseDetail> {
-    return httpClient<CourseDetail>(`/courses/${id}`, {
+    const safeId = encodeURIComponent(String(id).trim());
+    return httpClient<CourseDetail>(`/courses/${safeId}`, {
       next: { revalidate: 60 },
     });
   },

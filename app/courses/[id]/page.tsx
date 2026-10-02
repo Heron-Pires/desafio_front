@@ -42,6 +42,8 @@ export default async function CourseDetailPage({
     throw error;
   }
 
+  const modules = course.modules ?? [];
+
   return (
     <main className="min-h-screen bg-neutral-950 px-6 py-10 lg:px-12">
       {/* Navegação de retorno */}
@@ -70,9 +72,11 @@ export default async function CourseDetailPage({
       {/* Visão Geral do Curso */}
       <section className="grid grid-cols-1 gap-10 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <span className="rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-300">
-            {course.category}
-          </span>
+          {course.category && (
+            <span className="rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-300">
+              {course.category}
+            </span>
+          )}
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-neutral-100 sm:text-4xl">
             {course.title}
           </h1>
@@ -83,15 +87,21 @@ export default async function CourseDetailPage({
 
         <div>
           <div className="relative aspect-video overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 shadow-xl">
-            <Image
-              src={course.thumbnail}
-              alt={course.title}
-              fill
-              sizes="(max-width: 1024px) 100vw, 33vw"
-              priority
-              unoptimized
-              className="object-cover"
-            />
+            {course.thumbnail ? (
+              <Image
+                src={course.thumbnail}
+                alt={course.title || "Miniatura do curso"}
+                fill
+                sizes="(max-width: 1024px) 100vw, 33vw"
+                priority
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-neutral-800 text-xs text-neutral-500">
+                Sem miniatura
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -103,19 +113,25 @@ export default async function CourseDetailPage({
             Conteúdo do Curso
           </h2>
           <p className="mt-1 text-xs text-neutral-400">
-            {course.modules.length} {course.modules.length === 1 ? "módulo" : "módulos"} disponíveis
+            {modules.length} {modules.length === 1 ? "módulo" : "módulos"} disponível{modules.length === 1 ? "" : "s"}
           </p>
         </div>
 
-        <div className="space-y-4">
-          {course.modules.map((module, index) => (
-            <ModuleItem
-              key={module.id}
-              module={module}
-              index={index}
-            />
-          ))}
-        </div>
+        {modules.length > 0 ? (
+          <div className="space-y-4">
+            {modules.map((module, index) => (
+              <ModuleItem
+                key={module?.id ?? index}
+                module={module}
+                index={index}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-neutral-800 p-8 text-center text-xs text-neutral-400">
+            Nenhum módulo cadastrado para este curso.
+          </div>
+        )}
       </section>
     </main>
   );

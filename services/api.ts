@@ -1,43 +1,38 @@
 // services/api.ts
-// validador simples em services/api.ts
-// para capturar ausências de configuração
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-if (!API_URL) {
-  console.warn("Aviso: NEXT_PUBLIC_API_URL não foi definida no ambiente.");
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const BASE_URL = rawBaseUrl.replace(/\/+$/, "");
+
+if (!process.env.NEXT_PUBLIC_API_URL && typeof window !== "undefined") {
+  console.warn("Aviso: NEXT_PUBLIC_API_URL não está configurada no ambiente.");
 }
 
-export { API_URL };
-
-// Cliente HTTP Base e Tratamento Centralizado de Erros
+export { BASE_URL as API_URL };
 
 export class ApiError extends Error {
   public status: number;
 
-  constructor(message: string, status: number) {
-    super(message);
+  constructor(message: string, status: number, options?: ErrorOptions) {
+    super(message, options);
     this.name = "ApiError";
     this.status = status;
   }
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
-
-if (!BASE_URL && typeof window !== "undefined") {
-  console.warn("Aviso: NEXT_PUBLIC_API_URL não está configurada.");
-}
-
 interface FetchOptions extends RequestInit {
   params?: Record<string, string | number>;
+  timeoutMs?: number;
 }
 
 export async function httpClient<T>(
   endpoint: string,
   options: FetchOptions = {}
 ): Promise<T> {
-  const { params, ...customConfig } = options;
+  const { params, timeoutMs = 8000, signal, ...customConfig } = options;
 
-  let url = `${BASE_URL}${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  let url = `${BASE_URL}${cleanEndpoint}`;
+
   if (params) {
     const searchParams = new URLSearchParams(
       Object.entries(params).map(([k, v]) => [k, String(v)])
@@ -45,12 +40,20 @@ export async function httpClient<T>(
     url += `?${searchParams.toString()}`;
   }
 
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const combinedSignal = signal
+    ? typeof AbortSignal.any === "function"
+      ? AbortSignal.any([signal, timeoutSignal])
+      : signal
+    : timeoutSignal;
+
   const config: RequestInit = {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       ...customConfig.headers,
     },
+    signal: combinedSignal,
     ...customConfig,
   };
 
@@ -62,7 +65,7 @@ export async function httpClient<T>(
         throw new ApiError("Recurso não encontrado.", 404);
       }
       throw new ApiError(
-        `Erro na requisição: ${response.statusText}`,
+        `Erro na requisição: ${response.statusText || response.status}`,
         response.status
       );
     }
@@ -72,6 +75,13 @@ export async function httpClient<T>(
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError("Falha na comunicação com o servidor.", 500);
+
+    const isTimeout =
+      error instanceof DOMException && error.name === "TimeoutError";
+    const message = isTimeout
+      ? "Tempo limite de conexão excedido."
+      : "Falha na comunicação com o servidor.";
+
+    throw new ApiError(message, 500, { cause: error });
   }
 }

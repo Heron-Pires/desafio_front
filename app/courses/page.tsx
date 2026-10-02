@@ -24,7 +24,10 @@ export default async function CoursesPage() {
       {/* Header simplificado */}
       <header className="border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2 text-sm font-semibold tracking-wider text-neutral-100">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm font-semibold tracking-wider text-neutral-100"
+          >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-neutral-950 font-black text-xs">
               C
             </span>

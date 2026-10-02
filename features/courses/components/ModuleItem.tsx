@@ -7,6 +7,8 @@ interface ModuleItemProps {
 }
 
 export function ModuleItem({ module, index }: ModuleItemProps) {
+  const lessons = module?.lessons ?? [];
+
   return (
     <details
       open
@@ -18,11 +20,11 @@ export function ModuleItem({ module, index }: ModuleItemProps) {
             Módulo {index + 1}
           </span>
           <h3 className="text-base font-semibold text-neutral-100">
-            {module.title}
+            {module?.title || `Módulo ${index + 1}`}
           </h3>
         </div>
         <div className="flex items-center gap-3 text-xs text-neutral-400">
-          <span>{module.lessons.length} aulas</span>
+          <span>{lessons.length} {lessons.length === 1 ? "aula" : "aulas"}</span>
           <svg
             className="h-4 w-4 transition-transform duration-300 group-open:-rotate-180"
             fill="none"
@@ -40,15 +42,21 @@ export function ModuleItem({ module, index }: ModuleItemProps) {
       </summary>
 
       <div className="border-t border-neutral-800/80 p-5 pt-3">
-        <ul className="space-y-2">
-          {module.lessons.map((lesson, lessonIndex) => (
-            <LessonItem
-              key={lesson.id}
-              lesson={lesson}
-              index={lessonIndex}
-            />
-          ))}
-        </ul>
+        {lessons.length > 0 ? (
+          <ul className="space-y-2">
+            {lessons.map((lesson, lessonIndex) => (
+              <LessonItem
+                key={lesson?.id ?? lessonIndex}
+                lesson={lesson}
+                index={lessonIndex}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="py-2 text-xs text-neutral-500">
+            Nenhuma aula cadastrada neste módulo.
+          </p>
+        )}
       </div>
     </details>
   );
