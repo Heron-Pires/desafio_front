@@ -85,7 +85,7 @@ npm run lint
 ## 7. Rotas Disponíveis
 
 * `/`
-  Redireciona automaticamente para `/courses`.
+  Página inicial (Landing Page) com apresentação da plataforma no estilo streaming e atalho para o catálogo.
 
 * `/courses`
   Página de listagem geral com catálogo de cursos disponíveis, apresentando miniatura, título, categoria, descrição resumida e quantidade de módulos.
