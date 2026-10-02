@@ -2,7 +2,6 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { coursesService } from "@/features/courses/services/courses.service";
 import { CourseList } from "@/features/courses/components/CourseList";
-import { mockCourses } from "@/features/courses/services/courses.mock";
 import { CourseSummary } from "@/features/courses/types/course";
 
 export const metadata: Metadata = {
@@ -12,13 +11,12 @@ export const metadata: Metadata = {
 
 export default async function CoursesPage() {
   let courses: CourseSummary[] = [];
-  const error: string | null = null;
+  let error: string | null = null;
 
   try {
     courses = await coursesService.getAll();
   } catch {
-    // Se a API backend não estiver ativa no momento, utiliza mock para demonstração
-    courses = mockCourses;
+    error = "Não foi possível carregar os cursos.";
   }
 
   return (

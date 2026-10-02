@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { coursesService } from "@/features/courses/services/courses.service";
-import { mockCourses } from "@/features/courses/services/courses.mock";
 import { CourseCard } from "@/features/courses/components/CourseCard";
 import { CourseSummary } from "@/features/courses/types/course";
 
@@ -9,11 +8,8 @@ export default async function HomePage() {
 
   try {
     courses = await coursesService.getAll();
-    if (!courses || courses.length === 0) {
-      courses = mockCourses;
-    }
   } catch {
-    courses = mockCourses;
+    courses = [];
   }
 
   return (
@@ -150,9 +146,21 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {courses.map((course) => (
-              <CourseCard key={course.id} course={course} />
-            ))}
+            {courses.length > 0 ? (
+              courses.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center text-neutral-400">
+                <p>Nenhum curso disponível no momento.</p>
+                <Link
+                  href="/courses"
+                  className="mt-2 inline-block text-xs text-neutral-300 underline"
+                >
+                  Ir para o catálogo completo
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { coursesService } from "@/features/courses/services/courses.service";
 import { ModuleItem } from "@/features/courses/components/ModuleItem";
@@ -81,11 +82,15 @@ export default async function CourseDetailPage({
         </div>
 
         <div>
-          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 shadow-xl">
-            <img
+          <div className="relative aspect-video overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 shadow-xl">
+            <Image
               src={course.thumbnail}
               alt={course.title}
-              className="aspect-video w-full object-cover"
+              fill
+              sizes="(max-width: 1024px) 100vw, 33vw"
+              priority
+              unoptimized
+              className="object-cover"
             />
           </div>
         </div>
