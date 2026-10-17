@@ -74,8 +74,8 @@ describe("Testes de Regressão - Persistência do Banco e Prevenção do Bug do 
         async () => {
           await lessonsService.create({
             title: "Aula Fantasma",
-            moduleId: "mod-1",
-            courseId: "course-1",
+            moduleId: 1,
+            duration: 10,
             videoUrl: "https://video.com/1",
           });
         },
