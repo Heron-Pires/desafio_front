@@ -1,14 +1,18 @@
-import { httpClient, ApiError } from "@/services/api";
-import { CourseSummary, CourseDetail } from "../types/course";
+import { apiClient, ApiError } from "@/services/api";
+import {
+  CourseSummary,
+  CourseDetail,
+  CreateCourseDTO,
+  UpdateCourseDTO,
+} from "../types/course";
 import { mockCourses, getMockCourseById } from "./courses.mock";
 
 const shouldForceMock = () => process.env.NEXT_PUBLIC_USE_MOCK === "true";
 
 export const coursesService = {
   /**
-   * Obtém a lista de cursos disponíveis.
-   * Consome a rota GET /courses da API e recorre ao courses.mock.ts
-   * caso a API esteja indisponível ou NEXT_PUBLIC_USE_MOCK esteja ativo.
+   * Obtém a lista de cursos disponíveis via Axios (GET /courses).
+   * Recorre defensivamente ao mock se a API estiver offline ou configurado.
    */
   async getAll(): Promise<CourseSummary[]> {
     if (shouldForceMock()) {
@@ -16,14 +20,11 @@ export const coursesService = {
     }
 
     try {
-      const data = await httpClient<CourseSummary[]>("/courses", {
-        next: { revalidate: 60 },
-      });
-      return data;
+      const response = await apiClient.get<CourseSummary[]>("/courses");
+      return response.data;
     } catch (error) {
-      // Fallback para mock caso a API backend esteja offline ou inacessível
       console.warn(
-        "API indisponível. Recorrendo a dados mockados de courses.mock.ts:",
+        "API backend indisponível. Recorrendo aos dados mockados de courses.mock.ts:",
         error
       );
       return mockCourses;
@@ -31,9 +32,7 @@ export const coursesService = {
   },
 
   /**
-   * Obtém os detalhes do curso e sua grade de módulos/aulas.
-   * Consome a rota GET /courses/:id da API e recorre ao courses.mock.ts
-   * caso a API esteja indisponível ou NEXT_PUBLIC_USE_MOCK esteja ativo.
+   * Obtém os detalhes de um curso por ID via Axios (GET /courses/:id).
    */
   async getById(id: string | number): Promise<CourseDetail> {
     const cleanId = String(id).trim();
@@ -48,26 +47,83 @@ export const coursesService = {
 
     const safeId = encodeURIComponent(cleanId);
     try {
-      return await httpClient<CourseDetail>(`/courses/${safeId}`, {
-        next: { revalidate: 60 },
-      });
+      const response = await apiClient.get<CourseDetail>(`/courses/${safeId}`);
+      return response.data;
     } catch (error) {
-      // Se a API respondeu 404 com status explícito, propaga o erro de 'não encontrado'
       if (error instanceof ApiError && error.status === 404) {
         throw error;
       }
 
-      // Se a API estiver offline/erro de conexão, busca nos dados mockados
       const mock = getMockCourseById(cleanId);
       if (mock) {
         console.warn(
-          `API indisponível. Utilizando dados mockados para o curso ${cleanId}.`
+          `API backend indisponível. Utilizando dados mockados para o curso ${cleanId}.`
         );
         return mock;
       }
 
-      // Se o ID não existe sequer no mock (ex: /courses/999999), lança 404
       throw new ApiError("Recurso não encontrado.", 404);
+    }
+  },
+
+  /**
+   * Cria um novo curso via Axios (POST /courses).
+   */
+  async create(data: CreateCourseDTO): Promise<CourseSummary> {
+    try {
+      const response = await apiClient.post<CourseSummary>("/courses", data);
+      return response.data;
+    } catch (error) {
+      console.warn("Falha ao salvar curso na API backend:", error);
+      // Fallback para ambiente mock
+      const newCourse: CourseSummary = {
+        id: String(Date.now()),
+        title: data.title,
+        category: data.category || "Geral",
+        shortDescription: data.description || "",
+        thumbnail: data.thumbnail || "",
+        modulesCount: 0,
+      };
+      mockCourses.push(newCourse);
+      return newCourse;
+    }
+  },
+
+  /**
+   * Atualiza os dados de um curso via Axios (PUT /courses/:id).
+   */
+  async update(id: string | number, data: UpdateCourseDTO): Promise<CourseSummary> {
+    const safeId = encodeURIComponent(String(id).trim());
+    try {
+      const response = await apiClient.put<CourseSummary>(`/courses/${safeId}`, data);
+      return response.data;
+    } catch (error) {
+      console.warn("Falha ao atualizar curso na API backend:", error);
+      const existing = mockCourses.find((c) => String(c.id) === String(id));
+      if (existing) {
+        if (data.title !== undefined) existing.title = data.title;
+        if (data.category !== undefined) existing.category = data.category;
+        if (data.description !== undefined) existing.shortDescription = data.description;
+        if (data.thumbnail !== undefined) existing.thumbnail = data.thumbnail;
+        return existing;
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Remove um curso via Axios (DELETE /courses/:id).
+   */
+  async delete(id: string | number): Promise<void> {
+    const safeId = encodeURIComponent(String(id).trim());
+    try {
+      await apiClient.delete(`/courses/${safeId}`);
+    } catch (error) {
+      console.warn("Falha ao excluir curso na API backend:", error);
+      const index = mockCourses.findIndex((c) => String(c.id) === String(id));
+      if (index !== -1) {
+        mockCourses.splice(index, 1);
+      }
     }
   },
 };

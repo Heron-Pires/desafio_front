@@ -1,4 +1,4 @@
-// services/api.ts
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from "axios";
 
 const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const BASE_URL = rawBaseUrl.replace(/\/+$/, "");
@@ -19,69 +19,78 @@ export class ApiError extends Error {
   }
 }
 
-interface FetchOptions extends RequestInit {
+/**
+ * Instância global configurada do Axios para toda a aplicação.
+ */
+export const apiClient: AxiosInstance = axios.create({
+  baseURL: BASE_URL,
+  timeout: 8000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Interceptor para injetar token de autenticação se disponível
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("comando_auth_token");
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+interface RequestOptions extends AxiosRequestConfig {
   params?: Record<string, string | number>;
   timeoutMs?: number;
 }
 
+/**
+ * Cliente HTTP unificado utilizando Axios para compatibilidade e requisições seguras.
+ */
 export async function httpClient<T>(
   endpoint: string,
-  options: FetchOptions = {}
+  options: RequestOptions = {}
 ): Promise<T> {
-  const { params, timeoutMs = 8000, signal, ...customConfig } = options;
-
+  const { timeoutMs = 8000, ...customConfig } = options;
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  let url = `${BASE_URL}${cleanEndpoint}`;
-
-  if (params) {
-    const searchParams = new URLSearchParams(
-      Object.entries(params).map(([k, v]) => [k, String(v)])
-    );
-    url += `?${searchParams.toString()}`;
-  }
-
-  const timeoutSignal = AbortSignal.timeout(timeoutMs);
-  const combinedSignal = signal
-    ? typeof AbortSignal.any === "function"
-      ? AbortSignal.any([signal, timeoutSignal])
-      : signal
-    : timeoutSignal;
-
-  const config: RequestInit = {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...customConfig.headers,
-    },
-    signal: combinedSignal,
-    ...customConfig,
-  };
 
   try {
-    const response = await fetch(url, config);
+    const response = await apiClient.request<T>({
+      url: cleanEndpoint,
+      timeout: timeoutMs,
+      ...customConfig,
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const status = axiosError.response?.status || 500;
+      const serverMessage = axiosError.response?.data?.message;
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new ApiError("Recurso não encontrado.", 404);
+      if (status === 404) {
+        throw new ApiError(serverMessage || "Recurso não encontrado.", 404);
       }
-      throw new ApiError(
-        `Erro na requisição: ${response.statusText || response.status}`,
-        response.status
-      );
+
+      if (axiosError.code === "ECONNABORTED") {
+        throw new ApiError("Tempo limite de conexão excedido.", 504, { cause: error });
+      }
+
+      const message =
+        serverMessage ||
+        axiosError.message ||
+        "Falha na comunicação com o servidor.";
+
+      throw new ApiError(message, status, { cause: error });
     }
 
-    return (await response.json()) as T;
-  } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
 
-    const isTimeout =
-      error instanceof DOMException && error.name === "TimeoutError";
-    const message = isTimeout
-      ? "Tempo limite de conexão excedido."
-      : "Falha na comunicação com o servidor.";
-
-    throw new ApiError(message, 500, { cause: error });
+    throw new ApiError("Falha na comunicação com o servidor.", 500, { cause: error });
   }
 }
+
+export default apiClient;

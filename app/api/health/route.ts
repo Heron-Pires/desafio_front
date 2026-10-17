@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { API_URL } from "@/services/api";
+import { apiClient, API_URL } from "@/services/api";
 
 export const dynamic = "force-dynamic";
 
@@ -9,16 +9,8 @@ export async function GET() {
   let upstreamStatus = "unreachable";
 
   try {
-    const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-    const cleanUrl = rawBaseUrl.replace(/\/+$/, "");
-
-    const res = await fetch(`${cleanUrl}/courses`, {
-      method: "GET",
-      signal: AbortSignal.timeout(3000),
-      cache: "no-store",
-    }).catch(() => null);
-
-    if (res && (res.ok || res.status < 500)) {
+    const res = await apiClient.get("/health", { timeout: 3000 });
+    if (res.status === 200) {
       upstreamOk = true;
       upstreamStatus = "connected";
     }

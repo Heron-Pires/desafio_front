@@ -2,130 +2,64 @@ import Link from "next/link";
 import { coursesService } from "@/features/courses/services/courses.service";
 import { CourseCard } from "@/features/courses/components/CourseCard";
 import { CourseSummary } from "@/features/courses/types/course";
+import Navbar from "@/components/common/Navbar";
 
 export default async function HomePage() {
   let courses: CourseSummary[] = [];
-
   try {
     courses = await coursesService.getAll();
-  } catch {
-    courses = [];
+  } catch (error) {
+    console.warn("Falha ao buscar cursos para a landing page:", error);
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
-      {/* Navbar de Navegação */}
-      <header className="sticky top-0 z-50 border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-950 font-black text-sm shadow-sm">
-              C
+    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-100 selection:bg-neutral-800 selection:text-neutral-50">
+      {/* Header Unificado */}
+      <Navbar />
+
+      {/* Hero Section - Estilo Streaming */}
+      <section className="relative overflow-hidden px-6 pt-16 pb-20 lg:px-12 lg:pt-24 lg:pb-32">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-800/20 via-neutral-950 to-neutral-950" />
+
+        <div className="mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1 text-xs text-neutral-300 backdrop-blur">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Plataforma Comando &bull; Hub de Aprendizado
+          </div>
+
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-neutral-100 sm:text-6xl lg:text-7xl">
+            Aprenda tecnologia com foco em{" "}
+            <span className="bg-gradient-to-r from-neutral-100 via-neutral-300 to-neutral-500 bg-clip-text text-transparent">
+              alta performance
             </span>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-wider text-neutral-100">
-                COMANDO
-              </span>
-              <span className="text-[10px] uppercase tracking-widest text-neutral-400">
-                Academy
-              </span>
-            </div>
-          </Link>
-
-          <nav className="hidden items-center gap-8 text-xs font-medium text-neutral-400 md:flex">
-            <Link
-              href="#cursos"
-              className="transition-colors hover:text-neutral-100"
-            >
-              Cursos
-            </Link>
-            <Link
-              href="#metodologia"
-              className="transition-colors hover:text-neutral-100"
-            >
-              Metodologia
-            </Link>
-            <Link
-              href="#diferenciais"
-              className="transition-colors hover:text-neutral-100"
-            >
-              Diferenciais
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/courses"
-              className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-xs font-semibold text-neutral-950 transition-all hover:bg-neutral-200 active:scale-95"
-            >
-              Ver Catálogo &rarr;
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-neutral-800/60 px-6 py-24 sm:py-32">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-neutral-800/20 via-neutral-950 to-neutral-950 pointer-events-none" />
-
-        <div className="relative mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/80 px-3.5 py-1.5 text-xs font-medium text-neutral-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Nova Plataforma de Aprendizado
-          </div>
-
-          <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-neutral-100 sm:text-6xl sm:leading-[1.15]">
-            Evolua suas habilidades com a experiência de ensino definitiva.
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-neutral-400 sm:text-lg">
-            Cursos objetivos, arquitetura moderna e navegação inspirada em
-            plataformas de streaming. Aprenda com módulos práticos e acelere seu
-            domínio em desenvolvimento de software.
+            Conteúdo técnico de ponta, estruturado em módulos práticos e vídeos imersivos.
+            Gerencie, crie e assista às aulas diretamente na plataforma.
           </p>
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="#cursos"
-              className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-neutral-100 px-6 text-sm font-semibold text-neutral-950 transition-all hover:bg-neutral-200 active:scale-95 sm:w-auto"
+              href="/courses"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-neutral-100 px-6 text-sm font-semibold text-neutral-950 transition-all hover:bg-neutral-200 active:scale-95 sm:w-auto"
             >
-              Explorar Cursos
+              Explorar Catálogo
             </Link>
             <Link
-              href="#metodologia"
-              className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 px-6 text-sm font-medium text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800 sm:w-auto"
+              href="/videos"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900 px-6 text-sm font-semibold text-neutral-300 transition-all hover:bg-neutral-800 hover:text-white sm:w-auto"
             >
-              Conhecer a Metodologia
+              Gerenciar Vídeos
             </Link>
-          </div>
-
-          {/* Destaques Rápidos */}
-          <div className="mt-16 grid grid-cols-1 gap-6 border-t border-neutral-900 pt-10 sm:grid-cols-3">
-            <div className="text-center">
-              <span className="text-2xl font-bold text-neutral-100">100%</span>
-              <p className="mt-1 text-xs text-neutral-400">
-                Foco prático e direto ao ponto
-              </p>
-            </div>
-            <div className="text-center">
-              <span className="text-2xl font-bold text-neutral-100">Streaming</span>
-              <p className="mt-1 text-xs text-neutral-400">
-                Interface imersiva e responsiva
-              </p>
-            </div>
-            <div className="text-center">
-              <span className="text-2xl font-bold text-neutral-100">Modular</span>
-              <p className="mt-1 text-xs text-neutral-400">
-                Aulas sequenciais e organizadas
-              </p>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Seção de Cursos em Destaque */}
-      <section id="cursos" className="px-6 py-20 lg:px-12">
+      {/* Catálogo em Destaque */}
+      <section className="px-6 py-12 lg:px-12">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col justify-between gap-4 border-b border-neutral-800/80 pb-6 sm:flex-row sm:items-end">
+          <div className="flex items-end justify-between border-b border-neutral-800/80 pb-4">
             <div>
               <span className="rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-300">
                 Catálogo em Destaque
@@ -252,11 +186,11 @@ export default async function HomePage() {
                 </svg>
               </div>
               <h3 className="mt-4 text-lg font-semibold text-neutral-100">
-                Alta Performance com SSR
+                Alta Performance com Axios & SSR
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-neutral-400">
-                Construído em Next.js App Router com React Server Components,
-                garantindo carregamento instantâneo e excelente indexação.
+                Construído em Next.js App Router integrado via Axios e React Server Components,
+                garantindo carregamento instantâneo e robustez.
               </p>
             </div>
           </div>
@@ -273,7 +207,7 @@ export default async function HomePage() {
             Acesse agora nossa seleção de cursos e comece a estudar na
             Plataforma Comando.
           </p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex justify-center gap-4">
             <Link
               href="/courses"
               className="inline-flex h-11 items-center justify-center rounded-xl bg-neutral-100 px-6 text-sm font-semibold text-neutral-950 transition-all hover:bg-neutral-200 active:scale-95"
@@ -304,8 +238,11 @@ export default async function HomePage() {
             <Link href="/courses" className="transition-colors hover:text-neutral-200">
               Cursos
             </Link>
-            <Link href="#metodologia" className="transition-colors hover:text-neutral-200">
-              Sobre
+            <Link href="/videos" className="transition-colors hover:text-neutral-200">
+              Vídeos
+            </Link>
+            <Link href="/login" className="transition-colors hover:text-neutral-200">
+              Login
             </Link>
           </div>
         </div>
