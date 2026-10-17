@@ -4,6 +4,9 @@ import { CourseCard } from "@/features/courses/components/CourseCard";
 import { CourseSummary } from "@/features/courses/types/course";
 import Navbar from "@/components/common/Navbar";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function HomePage() {
   let courses: CourseSummary[] = [];
   try {

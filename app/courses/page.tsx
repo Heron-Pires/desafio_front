@@ -4,6 +4,9 @@ import { CoursesCatalogManager } from "@/features/courses/components/CoursesCata
 import { CourseSummary } from "@/features/courses/types/course";
 import Navbar from "@/components/common/Navbar";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Catálogo de Cursos & Vídeos | Plataforma Comando",
   description: "Explore, crie e gerencie todos os cursos e trilhas disponíveis na Plataforma Comando.",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { CourseSummary } from "../types/course";
@@ -27,6 +27,23 @@ export function CoursesCatalogManager({
   const [thumbnail, setThumbnail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Recarrega lista atualizada diretamente da API backend
+  const refreshCourses = useCallback(async () => {
+    try {
+      const data = await coursesService.getAll();
+      setCourses(data);
+    } catch (err) {
+      console.warn("Erro ao sincronizar catálogo de cursos:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      refreshCourses();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [refreshCourses]);
 
   const openCreateModal = () => {
     setIsEditing(false);
@@ -59,44 +76,35 @@ export function CoursesCatalogManager({
 
     try {
       if (isEditing && currentCourseId) {
-        // Atualiza curso via Axios (PUT /courses/:id)
-        const updated = await coursesService.update(currentCourseId, {
+        // Atualiza curso no PostgreSQL via Axios (PUT /courses/:id)
+        await coursesService.update(currentCourseId, {
           title: title.trim(),
           category: category.trim(),
           description: description.trim(),
           thumbnail: thumbnail.trim(),
         });
 
-        setCourses((prev) =>
-          prev.map((c) =>
-            String(c.id) === String(currentCourseId)
-              ? {
-                  ...c,
-                  title: updated.title,
-                  category: updated.category,
-                  shortDescription: updated.shortDescription || description,
-                  thumbnail: updated.thumbnail || thumbnail,
-                }
-              : c
-          )
-        );
-        setFeedback({ type: "success", text: "Curso atualizado com sucesso via Axios!" });
+        await refreshCourses();
+        setFeedback({ type: "success", text: "Curso atualizado com sucesso no banco de dados!" });
       } else {
-        // Cria curso via Axios (POST /courses)
-        const created = await coursesService.create({
+        // Cria curso no PostgreSQL via Axios (POST /courses)
+        await coursesService.create({
           title: title.trim(),
           category: category.trim(),
           description: description.trim(),
           thumbnail: thumbnail.trim(),
         });
 
-        setCourses((prev) => [...prev, created]);
-        setFeedback({ type: "success", text: "Novo curso criado com sucesso via Axios!" });
+        await refreshCourses();
+        setFeedback({ type: "success", text: "Novo curso persistido com sucesso no banco de dados!" });
       }
 
       setModalOpen(false);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao processar requisição.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Erro ao salvar no banco de dados. Verifique se o backend está ativo.";
       setFeedback({ type: "error", text: msg });
     } finally {
       setSubmitting(false);
@@ -107,16 +115,16 @@ export function CoursesCatalogManager({
     e.preventDefault();
     e.stopPropagation();
 
-    const ok = window.confirm(`Deseja realmente remover o curso "${courseTitle}"?`);
+    const ok = window.confirm(`Deseja realmente remover o curso "${courseTitle}" do banco de dados?`);
     if (!ok) return;
 
     try {
-      // Exclui curso via Axios (DELETE /courses/:id)
+      // Exclui curso no PostgreSQL via Axios (DELETE /courses/:id)
       await coursesService.delete(id);
-      setCourses((prev) => prev.filter((c) => String(c.id) !== String(id)));
-      setFeedback({ type: "success", text: `Curso "${courseTitle}" removido com sucesso.` });
+      await refreshCourses();
+      setFeedback({ type: "success", text: `Curso "${courseTitle}" removido do banco de dados.` });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao excluir curso.";
+      const msg = err instanceof Error ? err.message : "Erro ao excluir curso do banco de dados.";
       setFeedback({ type: "error", text: msg });
     }
   };
@@ -133,7 +141,7 @@ export function CoursesCatalogManager({
             Cursos Disponíveis
           </h1>
           <p className="mt-2 text-sm text-neutral-400">
-            Escolha uma formação ou crie e gerencie seus próprios cursos e vídeos.
+            Escolha uma formação ou crie e gerencie seus próprios cursos e vídeos gravados no PostgreSQL.
           </p>
         </div>
 
