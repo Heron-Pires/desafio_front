@@ -1,18 +1,24 @@
-# Plataforma Comando - Frontend de Cursos
+# Plataforma Comando - Frontend de Cursos & Gestão de Streaming
 
 ## 1. Descrição do Projeto
 
-Interface da área do aluno para a plataforma de ensino Comando. A aplicação permite a visualização de cursos em layout inspirado em plataformas de streaming, detalhamento de cursos específicos e navegação pela estrutura hierárquica de módulos e aulas.
+Interface web da plataforma de ensino e streaming **Comando**. A aplicação oferece aos alunos e administradores uma experiência moderna inspirada em serviços de streaming, permitindo o consumo, navegação e gerenciamento completo da estrutura hierárquica de ensino: **Curso ➔ Módulos ➔ Aulas (Vídeos)**.
 
-O projeto foi desenvolvido em arquitetura modular orientada a domínios (feature-based), utilizando React Server Components para otimização de requisições e consumo direto da API REST.
+O projeto foi construído sobre uma arquitetura modular orientada a domínios (*feature-based*), combinando **React Server Components** dinâmicos no Next.js App Router para evitar dados obsoletos de cache, cliente unificado **Axios** para comunicação resiliente com a API REST, e persistência real no PostgreSQL.
+
+---
 
 ## 2. Tecnologias Utilizadas
 
-* Next.js (App Router)
-* React
-* TypeScript
-* Tailwind CSS
-* Git
+* **Next.js 16.3.8** (App Router & Turbopack)
+* **React 19.2.8**
+* **TypeScript 5**
+* **Tailwind CSS v4** (Estilização utilitária moderna e media queries responsivas)
+* **Axios 1.20** (Cliente HTTP centralizado com interceptores de autenticação JWT e tratamento padronizado de erros)
+* **TSX 4.23** (Test Runner nativo do Node.js para testes unitários e de regressão rápidos)
+* **ESLint 9** (Padronização e análise estática de código)
+
+---
 
 ## 3. Como Instalar
 
@@ -20,7 +26,7 @@ Clone o repositório e acesse a branch da funcionalidade:
 
 ```bash
 git clone https://github.com/Heron-Pires/desafio_front
-cd comando-web
+cd desafio_front
 git checkout feature/frontend-courses
 ```
 
@@ -30,26 +36,31 @@ Instale as dependências:
 npm install
 ```
 
+---
+
 ## 4. Como Configurar o Ambiente
 
-Copie o arquivo de variáveis de exemplo para o arquivo local:
+Copie o arquivo de variáveis de exemplo para criar sua configuração local:
 
 ```bash
 cp .env.example .env.local
 ```
 
-## 5. Como Configurar a URL da API
-
-Abra o arquivo `.env.local` e configure a variável `NEXT_PUBLIC_API_URL` com o endereço base da API backend:
+Abra o arquivo `.env.local` e certifique-se de configurar as seguintes variáveis:
 
 ```env
+# URL base da API REST backend (porta padrão: 3001)
 NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Alterne para true apenas se desejar forçar a exibição de dados de demonstração locais sem consultar o backend
 NEXT_PUBLIC_USE_MOCK=false
 ```
 
-Substitua `http://localhost:3001` pelo host e porta onde o backend estiver em execução. Caso queira forçar a exibição dos dados de demonstração contidos em `courses.mock.ts` sem depender do backend, configure `NEXT_PUBLIC_USE_MOCK=true`.
+> **Aviso de Integração:** Para escrita e mutações (criação, edição e exclusão de cursos e aulas), a aplicação exige que a API backend esteja acessível e conectada ao banco de dados, prevenindo dados falsos em memória volátil.
 
-## 6. Como Executar o Projeto
+---
+
+## 5. Como Executar o Projeto
 
 ### Ambiente de Desenvolvimento
 
@@ -57,7 +68,7 @@ Substitua `http://localhost:3001` pelo host e porta onde o backend estiver em ex
 npm run dev
 ```
 
-Acesse a aplicação em `http://localhost:3000`.
+Acesse a aplicação no navegador em: `http://localhost:3000`.
 
 ### Build de Produção
 
@@ -66,75 +77,149 @@ npm run build
 npm start
 ```
 
+### Executar Testes Automatizados
+
+A aplicação conta com uma suíte de 24 testes unitários e de regressão cobrindo todos os serviços do CRUD e garantindo integridade de persistência:
+
+```bash
+npm test
+```
+
 ### Verificação de Tipos e Lint
 
 ```bash
 npm run lint
 ```
 
-## 7. Rotas Disponíveis
+---
 
-* `/`
-  Página inicial (Landing Page) com apresentação da plataforma no estilo streaming e atalho para o catálogo.
+## 6. Estrutura Arquitetural
 
-* `/courses`
-  Página de listagem geral com catálogo de cursos disponíveis, apresentando miniatura, título, categoria, descrição resumida e quantidade de módulos.
+O projeto organiza-se segundo o padrão de arquitetura orientada a domínios (*feature-based*):
 
-* `/courses/:id`
-  Página de detalhes do curso. Apresenta as informações gerais do curso selecionado e a relação completa de módulos e suas respectivas aulas.
+```text
+desafio_front/
+├── app/                              # Next.js App Router (Páginas, Layouts e Rotas Dinâmicas)
+│   ├── page.tsx                      # Landing Page (apresentação no estilo streaming)
+│   ├── layout.tsx                    # Layout raiz com Navbar unificada
+│   ├── globals.css                   # Configurações globais e media queries de layout
+│   ├── courses/                      # Catálogo e Detalhes de Cursos
+│   │   ├── page.tsx                  # Listagem de cursos (SSR dinâmico force-dynamic)
+│   │   └── [id]/page.tsx             # Detalhes do curso, módulos e aulas
+│   ├── videos/page.tsx               # Painel dedicado de gestão de vídeos/aulas
+│   ├── login/page.tsx                # Tela de autenticação estilo streaming
+│   └── api/health/route.ts           # Endpoint de monitoramento de saúde do frontend
+├── components/                       # Biblioteca de componentes compartilhados
+│   ├── common/Navbar.tsx             # Cabeçalho global com controle de sessão
+│   └── ui/                           # Componentes de interface (ImageUpload, Skeleton, etc.)
+├── features/courses/                 # Módulo de domínio de Cursos, Módulos e Aulas
+│   ├── components/                   # Componentes de negócio (CourseCard, CourseContentManager, etc.)
+│   ├── services/                     # Serviços de consumo da API (courses, modules, lessons)
+│   │   └── __tests__/                # Suíte de testes unitários e testes de regressão
+│   └── types/course.ts               # Contratos e tipos TypeScript do domínio
+└── services/                         # Infraestrutura de rede e autenticação
+    ├── api.ts                        # Instância configurada do Axios e httpClient helper
+    └── auth.service.ts               # Gerenciamento de sessão e tokens JWT
+```
 
-## 8. Observações Necessárias para Integração
+---
 
-A aplicação consome a API backend primariamente por meio do serviço centralizado (`services/api.ts` e `features/courses/services/courses.service.ts`). O backend deve disponibilizar os seguintes contratos:
+## 7. Páginas e Funcionalidades Disponíveis
 
-### GET /courses
+* **Landing Page (`/`)**:
+  Apresentação visual da plataforma com temática escura de streaming (`neutral-950`/`neutral-900`), destaques e botão de acesso direto ao catálogo.
+* **Catálogo de Cursos (`/courses`)**:
+  Visualização dinâmica de todos os cursos cadastrados com contagem de módulos, categorias e badges informativos. Inclui o gerenciador interativo (`CoursesCatalogManager`) para criar novos cursos, editar informações existentes e excluir cursos em tempo real com feedback instantâneo.
+* **Detalhes do Curso (`/courses/:id`)**:
+  Visão aprofundada do curso selecionado com gerenciador de conteúdo hierárquico (`CourseContentManager`). Permite adicionar e remover módulos, bem como cadastrar, editar e excluir aulas diretamente em cada módulo.
+* **Painel de Gestão de Vídeos (`/videos`)**:
+  Área administrativa com tabela interativa de todas as aulas cadastradas, filtro por curso e módulo, além de modal completo para inclusão e edição de vídeos (título, descrição, duração, ordem e URL de vídeo).
+* **Tela de Login (`/login`)**:
+  Interface de autenticação com layout estilizado, persistência de token no `localStorage` e integração com a barra de navegação global.
+* **Upload Responsivo de Capas (`ImageUpload.tsx`)**:
+  Componente customizado para seleção e upload de capas com preview em tempo real, validação estrita de formatos suportados (`JPEG`, `PNG`, `WebP`, `GIF`, `AVIF`) e adaptação a dispositivos móveis e desktops via media queries.
+* **Healthcheck (`/api/health`)**:
+  Endpoint HTTP GET que confirma a prontidão e disponibilidade do serviço frontend.
 
-Retorna a lista de cursos cadastrados.
+---
 
-Formato esperado:
+## 8. Persistência de Dados e Prevenção do Bug do F5
 
+Para solucionar em definitivo o problema de dados criados que desapareciam ao recarregar a página (F5):
+
+1. **Persistência Obrigatória no PostgreSQL**:
+   Mutações de escrita (`create`, `update`, `delete`) não utilizam mocks temporários em memória volátil. Toda alteração é salva obrigatoriamente no banco via API REST backend. Caso a API esteja inacessível, o erro é propagado de forma transparente para o usuário.
+2. **Desativação de Cache Estático no App Router**:
+   As páginas de catálogo (`/courses`) e inicial (`/`) utilizam `export const dynamic = "force-dynamic"` e `export const revalidate = 0`, garantindo que toda requisição de página busque os dados mais recentes no servidor.
+3. **Revalidação Ativa de Estado**:
+   Componentes clientes executam revalidação explícita (`refreshCourses()`) após qualquer operação de cadastro, edição ou remoção.
+4. **Testes de Regressão Automatizados**:
+   O arquivo `features/courses/services/__tests__/regression.test.ts` valida contra qualquer regressão no ciclo de persistência e previne poluição de estado em memória.
+
+---
+
+## 9. Contratos da API Backend (Integração)
+
+A aplicação consome a API backend por meio dos serviços centralizados em `features/courses/services/`. Os seguintes contratos REST são suportados:
+
+### Cursos (`/courses`)
+
+| Método | Endpoint | Descrição |
+| :--- | :--- | :--- |
+| `GET` | `/courses` | Retorna o catálogo de cursos cadastrados |
+| `GET` | `/courses/:id` | Retorna o curso especificado com seus módulos e aulas aninhados |
+| `POST` | `/courses` | Cadastra um novo curso |
+| `PUT` | `/courses/:id` | Atualiza os dados de um curso existente |
+| `DELETE` | `/courses/:id` | Remove o curso (e dependências em cascata) |
+
+#### Formato esperado no `GET /courses`:
 ```json
 [
   {
     "id": "1",
     "title": "Desenvolvimento Web Fullstack",
     "category": "Programação",
-    "shortDescription": "Aprenda a construir aplicações modernas de ponta a ponta.",
-    "thumbnail": "https://exemplo.com/thumb.jpg",
+    "shortDescription": "Introdução prática ao desenvolvimento web, do front ao back.",
+    "thumbnail": "https://exemplo.com/fullstack.jpg",
     "modulesCount": 2
   }
 ]
 ```
 
-### GET /courses/:id
+### Módulos (`/modules`)
 
-Retorna os detalhes de um curso específico identificado por `:id`.
+| Método | Endpoint | Descrição |
+| :--- | :--- | :--- |
+| `GET` | `/modules/:id` | Retorna os detalhes de um módulo e suas aulas |
+| `POST` | `/modules` | Cria um módulo associado ao `courseId` |
+| `PUT` | `/modules/:id` | Atualiza dados do módulo |
+| `DELETE` | `/modules/:id` | Remove o módulo e suas aulas |
 
-Formato esperado:
+### Aulas e Vídeos (`/lessons`)
 
+| Método | Endpoint | Descrição |
+| :--- | :--- | :--- |
+| `GET` | `/lessons/:id` | Retorna informações de uma aula específica |
+| `POST` | `/lessons` | Cadastra uma nova aula vinculada ao `moduleId` |
+| `PUT` | `/lessons/:id` | Atualiza dados da aula |
+| `DELETE` | `/lessons/:id` | Remove a aula cadastrada |
+
+#### Exemplo de Payload para Criação de Aula (`POST /lessons`):
 ```json
 {
-  "id": "1",
-  "title": "Desenvolvimento Web Fullstack",
-  "category": "Programação",
-  "description": "Descrição completa e detalhada sobre o curso.",
-  "thumbnail": "https://exemplo.com/thumb.jpg",
-  "modules": [
-    {
-      "id": "m1",
-      "title": "Módulo 1 - Fundamentos",
-      "lessons": [
-        { "id": "l1", "title": "Aula 1 - Variáveis" },
-        { id: "l2", "title": "Aula 2 - Tipos de dados" }
-      ]
-    }
-  ]
+  "moduleId": 1,
+  "title": "Introdução ao Docker",
+  "description": "Fundamentos de containers e imagens",
+  "duration": 15,
+  "order": 1,
+  "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 ```
 
 ### Tratamento de Respostas e Códigos HTTP
 
-* `200 OK`: Renderização normal da listagem ou dos detalhes.
-* `200 OK com array vazio []`: Dispara o componente de lista vazia (`Nenhum curso disponível.`).
-* `404 Not Found`: Dispara a tela nativa de erro 404 (`Curso não encontrado`) com link de retorno para `/courses`.
-* `500 Internal Server Error` ou falha de conexão: Caso a API backend esteja offline ou inacessível, o serviço recorre defensivamente aos dados de demonstração estruturados em `courses.mock.ts` (ou exibe barreira de erro caso configurado).
+* `200 OK / 201 Created`: Operação concluída com sucesso e estado atualizado.
+* `200 OK com array vazio []`: Renderiza estado visual amigável (`EmptyState`).
+* `400 Bad Request`: Exibe alerta amigável de campos inválidos ou obrigatórios não preenchidos.
+* `404 Not Found`: Dispara visualização com fallback (`ErrorMessage` ou tela nativa 404).
+* `500 Internal Server Error`: Tratamento defensivo exibindo aviso ao usuário com opção de reativação ou recarregamento sem quebrar a renderização global.
