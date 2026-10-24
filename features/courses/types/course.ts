@@ -4,9 +4,18 @@ export interface Lesson {
   title: string;
   description?: string | null;
   duration?: number;
+  durationFormatted?: string;
   order?: number;
   position?: number;
   videoUrl?: string | null;
+  completed?: boolean;
+  instructor?: string;
+  level?: string;
+  codeSnippet?: string;
+  overview?: string;
+  fundamentalConcepts?: string[];
+  terminalExecution?: string;
+  thumbnail?: string | null;
 }
 
 export interface Module {
@@ -28,6 +37,9 @@ export interface CourseSummary {
   shortDescription?: string;
   thumbnail?: string;
   modulesCount?: number;
+  lessonsCount?: number;
+  durationText?: string;
+  level?: string;
 }
 
 /**
@@ -36,11 +48,21 @@ export interface CourseSummary {
 export interface CourseDetail {
   id: string | number;
   title: string;
+  subtitle?: string;
   category?: string;
   description?: string;
+  shortDescription?: string;
   thumbnail?: string;
+  modulesCount?: number;
+  lessonsCount?: number;
+  durationText?: string;
+  level?: string;
+  previewDuration?: string;
+  features?: string[];
   modules: Module[];
 }
+
+export type Course = CourseDetail;
 
 export interface CreateLessonDTO {
   moduleId: number;
@@ -67,6 +89,7 @@ export interface CreateCourseDTO {
   category?: string;
   description?: string;
   thumbnail?: string;
+  level?: string;
 }
 
 export interface UpdateCourseDTO {
@@ -74,4 +97,5 @@ export interface UpdateCourseDTO {
   category?: string;
   description?: string;
   thumbnail?: string;
+  level?: string;
 }

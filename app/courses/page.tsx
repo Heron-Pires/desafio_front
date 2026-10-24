@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "Catálogo de Cursos & Vídeos | Plataforma Comando",
-  description: "Explore, crie e gerencie todos os cursos e trilhas disponíveis na Plataforma Comando.",
+  title: "Catálogo de Cursos | [Comando.C]",
+  description: "Explore o catálogo de cursos de tecnologia com foco em alta performance.",
 };
 
 export default async function CoursesPage() {
@@ -23,12 +23,20 @@ export default async function CoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-12 w-full flex-1">
+      <main className="mx-auto max-w-7xl px-6 py-8 w-full flex-1">
         <CoursesCatalogManager initialCourses={courses} initialError={error} />
       </main>
+
+      <footer className="mt-auto border-t border-neutral-900 bg-neutral-950 py-6 px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center text-center">
+          <p className="text-xs text-neutral-400">
+            &copy; 2026 [Comando.C] | Aprenda tecnologia com foco em alta performance
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

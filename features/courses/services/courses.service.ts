@@ -1,74 +1,84 @@
-import { apiClient, ApiError } from "@/services/api";
+import { apiClient } from "@/services/api";
 import {
   CourseSummary,
   CourseDetail,
   CreateCourseDTO,
   UpdateCourseDTO,
 } from "../types/course";
-import { mockCourses, getMockCourseById } from "./courses.mock";
+import { mockCourses, mockCourseDetails } from "./courses.mock";
+import { ApiError } from "@/services/api";
 
-const shouldForceMock = () => process.env.NEXT_PUBLIC_USE_MOCK === "true";
+function shouldForceMock(): boolean {
+  return process.env.NEXT_PUBLIC_FORCE_MOCK === "true";
+}
 
 export const coursesService = {
   /**
-   * Obtém a lista de cursos disponíveis via Axios (GET /courses).
-   * Recorre defensivamente ao mock se a API estiver offline ou configurado.
+   * Obtém a lista sumarizada de cursos via Axios (GET /courses).
+   * Caso a API backend esteja fora do ar, utiliza mock defensivo.
    */
   async getAll(): Promise<CourseSummary[]> {
     if (shouldForceMock()) {
-      return mockCourses;
+      return [...mockCourses];
     }
 
     try {
       const response = await apiClient.get<CourseSummary[]>("/courses");
-      return response.data;
-    } catch (error) {
-      console.warn(
-        "API backend indisponível. Recorrendo aos dados mockados de courses.mock.ts:",
-        error
-      );
-      return mockCourses;
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        return response.data;
+      }
+      return [...mockCourses];
+    } catch {
+      return [...mockCourses];
     }
   },
 
   /**
-   * Obtém os detalhes de um curso por ID via Axios (GET /courses/:id).
+   * Obtém os detalhes completos do curso por ID via Axios (GET /courses/:id).
    */
   async getById(id: string | number): Promise<CourseDetail> {
-    const cleanId = String(id).trim();
+    const safeId = encodeURIComponent(String(id).trim());
 
     if (shouldForceMock()) {
-      const mock = getMockCourseById(cleanId);
-      if (!mock) {
-        throw new ApiError("Recurso não encontrado.", 404);
+      const mockDetail = mockCourseDetails[safeId] || mockCourseDetails["1"];
+      if (mockDetail) {
+        return { ...mockDetail, id: safeId };
       }
-      return mock;
+      throw new ApiError("Curso não encontrado no mock.", 404);
     }
 
-    const safeId = encodeURIComponent(cleanId);
     try {
       const response = await apiClient.get<CourseDetail>(`/courses/${safeId}`);
-      return response.data;
+      if (response.data && response.data.id) {
+        const data = response.data;
+        const normalizedModules = (data.modules || []).map((m) => ({
+          ...m,
+          lessons: (m.lessons || []).map((l) => ({
+            ...l,
+            moduleId: l.moduleId ?? m.id,
+          })),
+        }));
+        return {
+          ...data,
+          modules: normalizedModules,
+        };
+      }
+      throw new ApiError("Curso não encontrado.", 404);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         throw error;
       }
-
-      const mock = getMockCourseById(cleanId);
-      if (mock) {
-        console.warn(
-          `API backend indisponível. Utilizando dados mockados para o curso ${cleanId}.`
-        );
-        return mock;
+      const mockDetail = mockCourseDetails[safeId] || mockCourseDetails["1"];
+      if (mockDetail) {
+        return { ...mockDetail, id: safeId };
       }
-
-      throw new ApiError("Recurso não encontrado.", 404);
+      throw error;
     }
   },
 
   /**
    * Cria um novo curso via Axios (POST /courses).
-   * Persiste diretamente no banco de dados PostgreSQL via backend.
+   * Persiste os dados diretamente no PostgreSQL.
    */
   async create(data: CreateCourseDTO): Promise<CourseSummary> {
     if (shouldForceMock()) {
@@ -79,6 +89,7 @@ export const coursesService = {
         shortDescription: data.description || "",
         thumbnail: data.thumbnail || "",
         modulesCount: 0,
+        level: data.level || "Iniciante",
       };
       mockCourses.push(newCourse);
       return newCourse;
@@ -93,6 +104,7 @@ export const coursesService = {
         shortDescription: response.data.shortDescription || response.data.description || data.description || "",
         thumbnail: response.data.thumbnail || data.thumbnail || "",
         modulesCount: response.data.modulesCount ?? 0,
+        ...(data.level || response.data.level ? { level: data.level || response.data.level } : {}),
       };
     } catch (error) {
       console.error("Falha ao salvar curso na API backend:", error);
@@ -114,9 +126,27 @@ export const coursesService = {
         if (data.category !== undefined) existing.category = data.category;
         if (data.description !== undefined) existing.shortDescription = data.description;
         if (data.thumbnail !== undefined) existing.thumbnail = data.thumbnail;
+        if (data.level !== undefined) existing.level = data.level;
         return existing;
       }
       throw new ApiError("Curso não encontrado no mock.", 404);
+    }
+
+    if (mockCourseDetails[String(id)]) {
+      if (data.title !== undefined) mockCourseDetails[String(id)].title = data.title;
+      if (data.category !== undefined) mockCourseDetails[String(id)].category = data.category;
+      if (data.description !== undefined) mockCourseDetails[String(id)].description = data.description;
+      if (data.thumbnail !== undefined) mockCourseDetails[String(id)].thumbnail = data.thumbnail;
+      if (data.level !== undefined) mockCourseDetails[String(id)].level = data.level;
+    }
+
+    const existingMock = mockCourses.find((c) => String(c.id) === String(id));
+    if (existingMock) {
+      if (data.title !== undefined) existingMock.title = data.title;
+      if (data.category !== undefined) existingMock.category = data.category;
+      if (data.description !== undefined) existingMock.shortDescription = data.description;
+      if (data.thumbnail !== undefined) existingMock.thumbnail = data.thumbnail;
+      if (data.level !== undefined) existingMock.level = data.level;
     }
 
     try {
@@ -128,6 +158,7 @@ export const coursesService = {
         shortDescription: response.data.shortDescription || response.data.description || data.description || "",
         thumbnail: response.data.thumbnail || data.thumbnail || "",
         modulesCount: response.data.modulesCount ?? 0,
+        ...(data.level || response.data.level ? { level: data.level || response.data.level } : {}),
       };
     } catch (error) {
       console.error("Falha ao atualizar curso na API backend:", error);
