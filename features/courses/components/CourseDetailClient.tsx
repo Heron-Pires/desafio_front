@@ -33,8 +33,8 @@ export function CourseDetailClient({
   // Encontra todas as aulas para a navegação linear
   const allLessons = useMemo(() => {
     const list: { lesson: Lesson; module: Module; mIndex: number }[] = [];
-    course.modules.forEach((mod, mIdx) => {
-      mod.lessons.forEach((les) => {
+    (course.modules || []).forEach((mod, mIdx) => {
+      (mod.lessons || []).forEach((les) => {
         list.push({ lesson: les, module: mod, mIndex: mIdx + 1 });
       });
     });
@@ -1197,10 +1197,15 @@ int main(int argc, char *argv[]) {
 
             <button
               type="button"
-              onClick={() => handleSelectLesson(allLessons[0]?.lesson.id || "l1")}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 active:scale-95 py-3 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-violet-600/30 transition-all"
+              disabled={allLessons.length === 0}
+              onClick={() => {
+                if (allLessons.length > 0) {
+                  handleSelectLesson(allLessons[0].lesson.id);
+                }
+              }}
+              className={`w-full inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 active:scale-95 py-3 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-violet-600/30 transition-all font-display ${allLessons.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              <span>&gt; Começar a Assistir Agora</span>
+              <span>{allLessons.length > 0 ? "> Começar a Assistir Agora" : "Curso em Breve"}</span>
             </button>
 
             <button
