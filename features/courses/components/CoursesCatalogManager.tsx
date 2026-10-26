@@ -32,6 +32,7 @@ export function CoursesCatalogManager({
   const [level, setLevel] = useState("Iniciante");
   const [description, setDescription] = useState("");
   const [thumbnail, setThumbnail] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -60,6 +61,7 @@ export function CoursesCatalogManager({
     setLevel("Iniciante");
     setDescription("");
     setThumbnail("");
+    setThumbnailFile(null);
     setModalOpen(true);
   };
 
@@ -73,6 +75,7 @@ export function CoursesCatalogManager({
     setLevel(course.level || "Iniciante");
     setDescription(course.shortDescription || "");
     setThumbnail(course.thumbnail || "");
+    setThumbnailFile(null);
     setModalOpen(true);
   };
 
@@ -101,12 +104,14 @@ export function CoursesCatalogManager({
     setFeedback(null);
 
     try {
+      const chosenThumbnail = thumbnailFile || (thumbnail.trim() ? thumbnail.trim() : undefined);
+
       if (isEditing && currentCourseId) {
         await coursesService.update(currentCourseId, {
           title: title.trim(),
           category: category.trim(),
           description: description.trim(),
-          thumbnail: thumbnail.trim(),
+          thumbnail: chosenThumbnail,
           level: level,
         });
         await refreshCourses();
@@ -116,7 +121,7 @@ export function CoursesCatalogManager({
           title: title.trim(),
           category: category.trim(),
           description: description.trim(),
-          thumbnail: thumbnail.trim(),
+          thumbnail: chosenThumbnail,
           level: level,
         });
         await refreshCourses();
@@ -395,6 +400,7 @@ export function CoursesCatalogManager({
                   label="Miniatura do Curso (Capa)"
                   value={thumbnail}
                   onChange={(val) => setThumbnail(val)}
+                  onFileChange={(file) => setThumbnailFile(file)}
                 />
               </div>
 

@@ -1,3 +1,4 @@
+import { AxiosRequestConfig } from "axios";
 import { apiClient } from "@/services/api";
 import {
   CourseSummary,
@@ -78,6 +79,7 @@ export const coursesService = {
 
   /**
    * Cria um novo curso via Axios (POST /courses).
+   * Suporta envio via JSON ou multipart/form-data quando thumbnail é um File binário.
    * Persiste os dados diretamente no PostgreSQL.
    */
   async create(data: CreateCourseDTO): Promise<CourseSummary> {
@@ -87,7 +89,7 @@ export const coursesService = {
         title: data.title,
         category: data.category || "Geral",
         shortDescription: data.description || "",
-        thumbnail: data.thumbnail || "",
+        thumbnail: typeof data.thumbnail === "string" ? data.thumbnail : "",
         modulesCount: 0,
         level: data.level || "Iniciante",
       };
@@ -96,13 +98,31 @@ export const coursesService = {
     }
 
     try {
-      const response = await apiClient.post<CourseSummary & { description?: string }>("/courses", data);
+      let payload: unknown = data;
+      let config: AxiosRequestConfig | undefined = undefined;
+
+      if (typeof File !== "undefined" && data.thumbnail instanceof File) {
+        const formData = new FormData();
+        formData.append("title", data.title);
+        if (data.category) formData.append("category", data.category);
+        if (data.description) formData.append("description", data.description);
+        if (data.level) formData.append("level", data.level);
+        formData.append("thumbnail", data.thumbnail);
+        payload = formData;
+        config = {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        };
+      }
+
+      const response = await apiClient.post<CourseSummary & { description?: string }>("/courses", payload, config);
       return {
         id: String(response.data.id),
         title: response.data.title,
-        category: response.data.category || data.category || "Geral",
-        shortDescription: response.data.shortDescription || response.data.description || data.description || "",
-        thumbnail: response.data.thumbnail || data.thumbnail || "",
+        category: response.data.category || (typeof data.category === "string" ? data.category : "Geral"),
+        shortDescription: response.data.shortDescription || response.data.description || (typeof data.description === "string" ? data.description : ""),
+        thumbnail: response.data.thumbnail || (typeof data.thumbnail === "string" ? data.thumbnail : ""),
         modulesCount: response.data.modulesCount ?? 0,
         ...(data.level || response.data.level ? { level: data.level || response.data.level } : {}),
       };
@@ -114,6 +134,7 @@ export const coursesService = {
 
   /**
    * Atualiza os dados de um curso via Axios (PUT /courses/:id).
+   * Suporta envio via JSON ou multipart/form-data quando thumbnail é um File binário.
    * Atualiza os dados persistidos no PostgreSQL.
    */
   async update(id: string | number, data: UpdateCourseDTO): Promise<CourseSummary> {
@@ -125,7 +146,9 @@ export const coursesService = {
         if (data.title !== undefined) existing.title = data.title;
         if (data.category !== undefined) existing.category = data.category;
         if (data.description !== undefined) existing.shortDescription = data.description;
-        if (data.thumbnail !== undefined) existing.thumbnail = data.thumbnail;
+        if (data.thumbnail !== undefined) {
+          existing.thumbnail = typeof data.thumbnail === "string" ? data.thumbnail : "";
+        }
         if (data.level !== undefined) existing.level = data.level;
         return existing;
       }
@@ -136,7 +159,9 @@ export const coursesService = {
       if (data.title !== undefined) mockCourseDetails[String(id)].title = data.title;
       if (data.category !== undefined) mockCourseDetails[String(id)].category = data.category;
       if (data.description !== undefined) mockCourseDetails[String(id)].description = data.description;
-      if (data.thumbnail !== undefined) mockCourseDetails[String(id)].thumbnail = data.thumbnail;
+      if (data.thumbnail !== undefined) {
+        mockCourseDetails[String(id)].thumbnail = typeof data.thumbnail === "string" ? data.thumbnail : "";
+      }
       if (data.level !== undefined) mockCourseDetails[String(id)].level = data.level;
     }
 
@@ -145,23 +170,86 @@ export const coursesService = {
       if (data.title !== undefined) existingMock.title = data.title;
       if (data.category !== undefined) existingMock.category = data.category;
       if (data.description !== undefined) existingMock.shortDescription = data.description;
-      if (data.thumbnail !== undefined) existingMock.thumbnail = data.thumbnail;
+      if (data.thumbnail !== undefined) {
+        existingMock.thumbnail = typeof data.thumbnail === "string" ? data.thumbnail : "";
+      }
       if (data.level !== undefined) existingMock.level = data.level;
     }
 
     try {
-      const response = await apiClient.put<CourseSummary & { description?: string }>(`/courses/${safeId}`, data);
+      let payload: unknown = data;
+      let config: AxiosRequestConfig | undefined = undefined;
+
+      if (typeof File !== "undefined" && data.thumbnail instanceof File) {
+        const formData = new FormData();
+        if (data.title !== undefined) formData.append("title", data.title);
+        if (data.category !== undefined) formData.append("category", data.category);
+        if (data.description !== undefined) formData.append("description", data.description);
+        if (data.level !== undefined) formData.append("level", data.level);
+        formData.append("thumbnail", data.thumbnail);
+        payload = formData;
+        config = {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        };
+      }
+
+      const response = await apiClient.put<CourseSummary & { description?: string }>(`/courses/${safeId}`, payload, config);
       return {
         id: String(response.data.id),
         title: response.data.title,
-        category: response.data.category || data.category || "Geral",
-        shortDescription: response.data.shortDescription || response.data.description || data.description || "",
-        thumbnail: response.data.thumbnail || data.thumbnail || "",
+        category: response.data.category || (typeof data.category === "string" ? data.category : "Geral"),
+        shortDescription: response.data.shortDescription || response.data.description || (typeof data.description === "string" ? data.description : ""),
+        thumbnail: response.data.thumbnail || (typeof data.thumbnail === "string" ? data.thumbnail : ""),
         modulesCount: response.data.modulesCount ?? 0,
         ...(data.level || response.data.level ? { level: data.level || response.data.level } : {}),
       };
     } catch (error) {
       console.error("Falha ao atualizar curso na API backend:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Atualiza exclusivamente a imagem de capa do curso via Axios (PATCH /courses/:id/thumbnail).
+   * Envia o arquivo de imagem via multipart/form-data para upload no Supabase Storage.
+   */
+  async uploadThumbnail(id: string | number, file: File): Promise<CourseSummary> {
+    const safeId = encodeURIComponent(String(id).trim());
+
+    if (shouldForceMock()) {
+      const existing = mockCourses.find((c) => String(c.id) === String(id));
+      if (existing) {
+        return existing;
+      }
+      throw new ApiError("Curso não encontrado no mock.", 404);
+    }
+
+    const formData = new FormData();
+    formData.append("thumbnail", file);
+
+    try {
+      const response = await apiClient.patch<CourseSummary & { description?: string }>(
+        `/courses/${safeId}/thumbnail`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return {
+        id: String(response.data.id),
+        title: response.data.title,
+        category: response.data.category || "Geral",
+        shortDescription: response.data.shortDescription || response.data.description || "",
+        thumbnail: response.data.thumbnail || "",
+        modulesCount: response.data.modulesCount ?? 0,
+        ...(response.data.level ? { level: response.data.level } : {}),
+      };
+    } catch (error) {
+      console.error("Falha ao atualizar miniatura do curso na API backend:", error);
       throw error;
     }
   },

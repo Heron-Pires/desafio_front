@@ -7,12 +7,14 @@ describe("coursesService - CRUD Unit Tests", () => {
   let postMock: ReturnType<typeof mock.method>;
   let getMock: ReturnType<typeof mock.method>;
   let putMock: ReturnType<typeof mock.method>;
+  let patchMock: ReturnType<typeof mock.method>;
   let deleteMock: ReturnType<typeof mock.method>;
 
   beforeEach(() => {
     postMock = mock.method(apiClient, "post");
     getMock = mock.method(apiClient, "get");
     putMock = mock.method(apiClient, "put");
+    patchMock = mock.method(apiClient, "patch");
     deleteMock = mock.method(apiClient, "delete");
   });
 
@@ -114,6 +116,37 @@ describe("coursesService - CRUD Unit Tests", () => {
       });
     });
 
+    it("deve suportar upload de thumbnail com FormData quando enviado um File", async () => {
+      const dummyFile = new File(["dummy"], "capa.png", { type: "image/png" });
+      const payloadWithFile = {
+        title: "Segurança Ofensiva",
+        category: "Segurança",
+        description: "Pentest do zero ao avançado",
+        thumbnail: dummyFile,
+      };
+
+      const mockResponse = {
+        id: "8",
+        title: "Segurança Ofensiva",
+        category: "Segurança",
+        description: "Pentest do zero ao avançado",
+        thumbnail: "https://supabase.co/storage/v1/object/public/course-thumbnails/capa.png",
+      };
+
+      postMock.mock.mockImplementation(async (url: string, data: unknown, config?: { headers?: Record<string, string> }) => {
+        assert.equal(url, "/courses");
+        assert.ok(data instanceof FormData);
+        assert.equal((data as FormData).get("title"), "Segurança Ofensiva");
+        assert.equal(config?.headers?.["Content-Type"], "multipart/form-data");
+        return { data: mockResponse, status: 201 };
+      });
+
+      const result = await coursesService.create(payloadWithFile);
+
+      assert.equal(postMock.mock.callCount(), 1);
+      assert.equal(result.thumbnail, "https://supabase.co/storage/v1/object/public/course-thumbnails/capa.png");
+    });
+
     it("deve propagar o erro caso a criação na API backend falhe", async () => {
       postMock.mock.mockImplementation(async () => {
         throw new Error("Erro no banco de dados");
@@ -159,6 +192,57 @@ describe("coursesService - CRUD Unit Tests", () => {
         thumbnail: "",
         modulesCount: 0,
       });
+    });
+
+    it("deve suportar atualização com FormData quando thumbnail é um File", async () => {
+      const dummyFile = new File(["dummy"], "nova-capa.jpg", { type: "image/jpeg" });
+      const updateData = {
+        title: "Curso Atualizado",
+        thumbnail: dummyFile,
+      };
+
+      const mockResponse = {
+        id: "7",
+        title: "Curso Atualizado",
+        thumbnail: "https://supabase.co/storage/v1/object/public/course-thumbnails/nova-capa.jpg",
+      };
+
+      putMock.mock.mockImplementation(async (url: string, data: unknown, config?: { headers?: Record<string, string> }) => {
+        assert.equal(url, "/courses/7");
+        assert.ok(data instanceof FormData);
+        assert.equal((data as FormData).get("title"), "Curso Atualizado");
+        assert.equal(config?.headers?.["Content-Type"], "multipart/form-data");
+        return { data: mockResponse, status: 200 };
+      });
+
+      const result = await coursesService.update("7", updateData);
+
+      assert.equal(putMock.mock.callCount(), 1);
+      assert.equal(result.thumbnail, "https://supabase.co/storage/v1/object/public/course-thumbnails/nova-capa.jpg");
+    });
+  });
+
+  describe("uploadThumbnail() - Atualização dedicada de imagem (PATCH /courses/:id/thumbnail)", () => {
+    it("deve enviar o arquivo via FormData para PATCH /courses/:id/thumbnail", async () => {
+      const dummyFile = new File(["image-bytes"], "thumb.png", { type: "image/png" });
+      const mockResponse = {
+        id: "10",
+        title: "Curso de Teste",
+        thumbnail: "https://supabase.co/storage/v1/object/public/course-thumbnails/thumb.png",
+      };
+
+      patchMock.mock.mockImplementation(async (url: string, data: unknown, config?: { headers?: Record<string, string> }) => {
+        assert.equal(url, "/courses/10/thumbnail");
+        assert.ok(data instanceof FormData);
+        assert.equal((data as FormData).get("thumbnail"), dummyFile);
+        assert.equal(config?.headers?.["Content-Type"], "multipart/form-data");
+        return { data: mockResponse, status: 200 };
+      });
+
+      const result = await coursesService.uploadThumbnail("10", dummyFile);
+
+      assert.equal(patchMock.mock.callCount(), 1);
+      assert.equal(result.thumbnail, "https://supabase.co/storage/v1/object/public/course-thumbnails/thumb.png");
     });
   });
 

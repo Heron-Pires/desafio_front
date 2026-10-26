@@ -76,6 +76,7 @@ export function CourseDetailClient({
   const [courseLevel, setCourseLevel] = useState("Médio");
   const [courseDesc, setCourseDesc] = useState("");
   const [courseThumb, setCourseThumb] = useState("");
+  const [courseThumbFile, setCourseThumbFile] = useState<File | null>(null);
 
   // Modal de Módulo (Criação / Edição)
   const [moduleModalOpen, setModuleModalOpen] = useState(false);
@@ -156,6 +157,7 @@ export function CourseDetailClient({
     setCourseLevel(course.level || "Médio");
     setCourseDesc(course.description || "");
     setCourseThumb(course.thumbnail || "");
+    setCourseThumbFile(null);
     setCourseModalOpen(true);
   };
 
@@ -165,11 +167,12 @@ export function CourseDetailClient({
     setSubmitting(true);
     setFeedback(null);
     try {
+      const chosenThumbnail = courseThumbFile || (courseThumb.trim() ? courseThumb.trim() : undefined);
       const updated = await coursesService.update(course.id, {
         title: courseTitle.trim(),
         category: courseCategory.trim(),
         description: courseDesc.trim(),
-        thumbnail: courseThumb.trim(),
+        thumbnail: chosenThumbnail,
         level: courseLevel,
       });
       setCourse((prev) => ({
@@ -178,7 +181,7 @@ export function CourseDetailClient({
         category: updated.category,
         description: courseDesc.trim(),
         shortDescription: courseDesc.trim(),
-        thumbnail: updated.thumbnail,
+        thumbnail: updated.thumbnail || prev.thumbnail,
         level: courseLevel,
       }));
       setCourseModalOpen(false);
@@ -1323,6 +1326,7 @@ int main(int argc, char *argv[]) {
                   label="Miniatura do Curso (Capa)"
                   value={courseThumb}
                   onChange={(val) => setCourseThumb(val)}
+                  onFileChange={(file) => setCourseThumbFile(file)}
                 />
               </div>
 

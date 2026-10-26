@@ -6,11 +6,12 @@ import Image from "next/image";
 interface ImageUploadProps {
   value?: string;
   onChange: (value: string) => void;
+  onFileChange?: (file: File | null) => void;
   label?: string;
   error?: string;
 }
 
-// Filtro rigoroso de tipos de imagem permitidos
+// Filtro rigoroso de tipos de imagem permitidos (compatível com Multer do backend)
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -24,6 +25,7 @@ const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"];
 export function ImageUpload({
   value,
   onChange,
+  onFileChange,
   label = "Imagem de Capa (Thumbnail)",
   error,
 }: ImageUploadProps) {
@@ -50,6 +52,12 @@ export function ImageUpload({
       return false;
     }
 
+    // Validação de tamanho máximo (5MB) alinhada ao backend
+    if (file.size > 5 * 1024 * 1024) {
+      setTypeError("A imagem excede o tamanho máximo permitido de 5MB.");
+      return false;
+    }
+
     setTypeError(null);
     return true;
   };
@@ -59,6 +67,10 @@ export function ImageUpload({
       return;
     }
 
+    // Notifica o componente pai sobre o objeto File binário
+    onFileChange?.(file);
+
+    // Gera o preview base64 para exibição imediata
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
@@ -102,6 +114,7 @@ export function ImageUpload({
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     onChange("");
+    onFileChange?.(null);
     setTypeError(null);
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -116,7 +129,7 @@ export function ImageUpload({
         </label>
       )}
 
-      {/* Container estilizado e responsivo controlado por Media Query CSS em globals.css */}
+      {/* Container estilizado e responsivo */}
       <div className="image-upload-container">
         {/* Dropzone com filtro de tipo de arquivo */}
         <div
@@ -190,7 +203,7 @@ export function ImageUpload({
         </div>
       </div>
 
-      {/* Erro de validação de tipo de arquivo */}
+      {/* Erro de validação de tipo de arquivo ou tamanho */}
       {typeError && (
         <p className="text-xs text-red-400 font-medium">{typeError}</p>
       )}
