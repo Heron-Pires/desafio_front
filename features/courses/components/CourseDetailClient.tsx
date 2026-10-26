@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CourseDetail, Lesson, Module } from "../types/course";
 import { coursesService } from "../services/courses.service";
@@ -77,6 +78,7 @@ export function CourseDetailClient({
   const [courseDesc, setCourseDesc] = useState("");
   const [courseThumb, setCourseThumb] = useState("");
   const [courseThumbFile, setCourseThumbFile] = useState<File | null>(null);
+  const [failedPreviewSrc, setFailedPreviewSrc] = useState<string | null>(null);
 
   // Modal de Módulo (Criação / Edição)
   const [moduleModalOpen, setModuleModalOpen] = useState(false);
@@ -167,12 +169,13 @@ export function CourseDetailClient({
     setSubmitting(true);
     setFeedback(null);
     try {
-      const chosenThumbnail = courseThumbFile || (courseThumb.trim() ? courseThumb.trim() : undefined);
+      const chosenThumbnail = courseThumbFile || (courseThumb.trim() ? courseThumb.trim() : null);
       const updated = await coursesService.update(course.id, {
         title: courseTitle.trim(),
         category: courseCategory.trim(),
         description: courseDesc.trim(),
         thumbnail: chosenThumbnail,
+        fallbackThumbnail: courseThumb.trim() || undefined,
         level: courseLevel,
       });
       setCourse((prev) => ({
@@ -181,7 +184,7 @@ export function CourseDetailClient({
         category: updated.category,
         description: courseDesc.trim(),
         shortDescription: courseDesc.trim(),
-        thumbnail: updated.thumbnail || prev.thumbnail,
+        thumbnail: updated.thumbnail ?? "",
         level: courseLevel,
       }));
       setCourseModalOpen(false);
@@ -1160,7 +1163,17 @@ int main(int argc, char *argv[]) {
             className="group cursor-pointer rounded-xl border border-neutral-800/80 bg-neutral-950 p-4 transition-all hover:border-violet-500/60 relative overflow-hidden"
           >
             <div className="aspect-video w-full rounded-lg bg-[#0e0e12] border border-neutral-800/80 p-3 font-mono text-[11px] text-neutral-300 flex flex-col justify-between relative overflow-hidden select-none">
-              <div className="flex items-center gap-1.5 text-neutral-400 text-[10px]">
+              {course.thumbnail && failedPreviewSrc !== course.thumbnail && (
+                <Image
+                  src={course.thumbnail}
+                  alt={course.title}
+                  fill
+                  unoptimized
+                  onError={() => setFailedPreviewSrc(course.thumbnail as string)}
+                  className="object-cover opacity-40 group-hover:opacity-55 transition-opacity pointer-events-none"
+                />
+              )}
+              <div className="flex items-center gap-1.5 text-neutral-400 text-[10px] relative z-10">
                 <span className="h-2 w-2 rounded-full bg-red-500/70" />
                 <span className="h-2 w-2 rounded-full bg-yellow-500/70" />
                 <span className="h-2 w-2 rounded-full bg-green-500/70" />

@@ -104,7 +104,7 @@ export function CoursesCatalogManager({
     setFeedback(null);
 
     try {
-      const chosenThumbnail = thumbnailFile || (thumbnail.trim() ? thumbnail.trim() : undefined);
+      const chosenThumbnail = isEditing ? (thumbnailFile || (thumbnail.trim() ? thumbnail.trim() : null)) : (thumbnailFile || (thumbnail.trim() ? thumbnail.trim() : undefined));
 
       if (isEditing && currentCourseId) {
         await coursesService.update(currentCourseId, {
@@ -112,6 +112,7 @@ export function CoursesCatalogManager({
           category: category.trim(),
           description: description.trim(),
           thumbnail: chosenThumbnail,
+          fallbackThumbnail: thumbnail.trim() || undefined,
           level: level,
         });
         await refreshCourses();
@@ -122,6 +123,7 @@ export function CoursesCatalogManager({
           category: category.trim(),
           description: description.trim(),
           thumbnail: chosenThumbnail,
+          fallbackThumbnail: thumbnail.trim() || undefined,
           level: level,
         });
         await refreshCourses();

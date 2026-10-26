@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { CourseSummary } from "../types/course";
 
 interface CourseCardProps {
@@ -9,29 +13,46 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, isAdmin, onEdit, onDelete }: CourseCardProps) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
   const lessonsCount = course.lessonsCount ?? (course.modulesCount ? course.modulesCount * 5 : 20);
   const durationText = course.durationText ?? `${Math.round(lessonsCount * 0.5)}h`;
+  const isImageBroken = Boolean(course.thumbnail && failedSrc === course.thumbnail);
+  const hasThumbnail = Boolean(course.thumbnail && course.thumbnail.trim().length > 0 && !isImageBroken);
 
   return (
     <div className="group relative flex flex-col justify-between rounded-xl border border-neutral-800/80 bg-neutral-900/40 p-4 transition-all duration-300 hover:border-violet-500/60 hover:bg-neutral-900/70 hover:shadow-lg hover:shadow-violet-950/20">
       <Link href={`/courses/${course.id}`} className="block flex-1">
-        {/* Título do Curso no Topo */}
-        <h3 className="line-clamp-1 text-sm font-bold text-neutral-100 transition-colors group-hover:text-violet-300 font-display">
+        {/* Título do Curso no Topo com Azeret Mono para legibilidade */}
+        <h3 className="line-clamp-1 text-sm font-bold text-neutral-100 transition-colors group-hover:text-violet-300 font-mono tracking-tight">
           {course.title}
         </h3>
 
-        {/* Capa com Brilho Roxo Centralizado */}
+        {/* Capa com Imagem Real do Curso ou Gradiente de Fallback */}
         <div className="relative my-3.5 aspect-video w-full overflow-hidden rounded-lg border border-neutral-800/80 bg-neutral-950 flex items-center justify-center">
-          <div
-            className="absolute inset-0 pointer-events-none opacity-85 group-hover:opacity-100 transition-opacity"
-            style={{
-              background:
-                "radial-gradient(circle at center, rgba(139, 92, 246, 0.45) 0%, rgba(139, 92, 246, 0.15) 45%, rgba(10, 10, 10, 0.8) 75%)",
-            }}
-          />
-          <span className="relative z-10 text-xs font-display text-neutral-400 group-hover:text-neutral-200 transition-colors">
-            Capa do curso
-          </span>
+          {hasThumbnail ? (
+            <Image
+              src={course.thumbnail as string}
+              alt={course.title}
+              fill
+              unoptimized
+              onError={() => setFailedSrc(course.thumbnail as string)}
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <>
+              <div
+                className="absolute inset-0 pointer-events-none opacity-85 group-hover:opacity-100 transition-opacity"
+                style={{
+                  background:
+                    "radial-gradient(circle at center, rgba(139, 92, 246, 0.45) 0%, rgba(139, 92, 246, 0.15) 45%, rgba(10, 10, 10, 0.8) 75%)",
+                }}
+              />
+              <span className="relative z-10 text-xs font-display text-neutral-400 group-hover:text-neutral-200 transition-colors">
+                Capa do curso
+              </span>
+            </>
+          )}
         </div>
 
         {/* Rodapé do Card com Total de Aulas e Duração */}

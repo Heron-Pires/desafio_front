@@ -147,6 +147,51 @@ describe("coursesService - CRUD Unit Tests", () => {
       assert.equal(result.thumbnail, "https://supabase.co/storage/v1/object/public/course-thumbnails/capa.png");
     });
 
+    it("deve realizar fallback defensivo para JSON e Base64 quando o upload multipart falhar com status 500 (ex: Supabase indisponível)", async () => {
+      const dummyFile = new File(["img-bytes"], "capa.png", { type: "image/png" });
+      const fallbackBase64 = "data:image/png;base64,aW1nLWJ5dGVz";
+      const payloadWithFile = {
+        title: "Engenharia Reversa",
+        category: "Sistemas",
+        description: "Análise binária e descompilação",
+        thumbnail: dummyFile,
+        fallbackThumbnail: fallbackBase64,
+      };
+
+      const mockResponse = {
+        id: "9",
+        title: "Engenharia Reversa",
+        category: "Sistemas",
+        description: "Análise binária e descompilação",
+        thumbnail: fallbackBase64,
+      };
+
+      let callIndex = 0;
+      postMock.mock.mockImplementation(async (url: string, data: unknown) => {
+        assert.equal(url, "/courses");
+        callIndex++;
+        if (callIndex === 1) {
+          // Primeira chamada via multipart falha no backend com 500
+          assert.ok(data instanceof FormData);
+          throw new Error("Request failed with status code 500 (Upload de arquivos indisponível: configure SUPABASE_URL)");
+        }
+        // Segunda chamada (fallback defensivo) envia JSON com a imagem em Base64
+        assert.ok(!(data instanceof FormData));
+        const body = data as Record<string, unknown>;
+        assert.equal(body.title, "Engenharia Reversa");
+        assert.equal(body.thumbnail, fallbackBase64);
+        // Garante que o payload respeita o limite de 100KB do body-parser Express (evitando status 413)
+        assert.ok(JSON.stringify(body).length < 100 * 1024, "Payload excede 100KB");
+        return { data: mockResponse, status: 201 };
+      });
+
+      const result = await coursesService.create(payloadWithFile);
+
+      assert.equal(postMock.mock.callCount(), 2);
+      assert.equal(result.id, "9");
+      assert.equal(result.thumbnail, fallbackBase64);
+    });
+
     it("deve propagar o erro caso a criação na API backend falhe", async () => {
       postMock.mock.mockImplementation(async () => {
         throw new Error("Erro no banco de dados");
@@ -220,6 +265,94 @@ describe("coursesService - CRUD Unit Tests", () => {
       assert.equal(putMock.mock.callCount(), 1);
       assert.equal(result.thumbnail, "https://supabase.co/storage/v1/object/public/course-thumbnails/nova-capa.jpg");
     });
+
+    it("deve realizar fallback defensivo para JSON e Base64 quando a atualização multipart falhar com status 500 (ex: Supabase indisponível)", async () => {
+      const dummyFile = new File(["img-bytes"], "nova-capa.jpg", { type: "image/jpeg" });
+      const fallbackBase64 = "data:image/jpeg;base64,aW1nLWJ5dGVz";
+      const updateData = {
+        title: "Curso Atualizado Fallback",
+        thumbnail: dummyFile,
+        fallbackThumbnail: fallbackBase64,
+      };
+
+      const mockResponse = {
+        id: "7",
+        title: "Curso Atualizado Fallback",
+        thumbnail: fallbackBase64,
+      };
+
+      let callIndex = 0;
+      putMock.mock.mockImplementation(async (url: string, data: unknown) => {
+        assert.equal(url, "/courses/7");
+        callIndex++;
+        if (callIndex === 1) {
+          // Falha do upload multipart no backend
+          assert.ok(data instanceof FormData);
+          throw new Error("Request failed with status code 500 (Upload de arquivos indisponível: configure SUPABASE_URL)");
+        }
+        // Fallback defensivo com JSON
+        assert.ok(!(data instanceof FormData));
+        const body = data as Record<string, unknown>;
+        assert.equal(body.title, "Curso Atualizado Fallback");
+        assert.equal(body.thumbnail, fallbackBase64);
+        // Garante que o payload respeita o limite de 100KB do body-parser Express (evitando status 413)
+        assert.ok(JSON.stringify(body).length < 100 * 1024, "Payload excede 100KB");
+        return { data: mockResponse, status: 200 };
+      });
+
+      const result = await coursesService.update("7", updateData);
+
+      assert.equal(putMock.mock.callCount(), 2);
+      assert.equal(result.thumbnail, fallbackBase64);
+    });
+
+    it("deve permitir remover thumbnail passando null", async () => {
+      const updateData = {
+        title: "Curso Sem Capa",
+        thumbnail: null,
+      };
+
+      const mockResponse = {
+        id: "7",
+        title: "Curso Sem Capa",
+        thumbnail: null,
+      };
+
+      putMock.mock.mockImplementation(async (url: string, data: unknown) => {
+        assert.equal(url, "/courses/7");
+        assert.deepEqual(data, updateData);
+        return { data: mockResponse, status: 200 };
+      });
+
+      const result = await coursesService.update("7", updateData);
+
+      assert.equal(putMock.mock.callCount(), 1);
+      assert.equal(result.thumbnail, "");
+    });
+
+    it("deve permitir remover thumbnail passando string vazia", async () => {
+      const updateData = {
+        title: "Curso Sem Capa 2",
+        thumbnail: "",
+      };
+
+      const mockResponse = {
+        id: "7",
+        title: "Curso Sem Capa 2",
+        thumbnail: null,
+      };
+
+      putMock.mock.mockImplementation(async (url: string, data: unknown) => {
+        assert.equal(url, "/courses/7");
+        assert.deepEqual(data, updateData);
+        return { data: mockResponse, status: 200 };
+      });
+
+      const result = await coursesService.update("7", updateData);
+
+      assert.equal(putMock.mock.callCount(), 1);
+      assert.equal(result.thumbnail, "");
+    });
   });
 
   describe("uploadThumbnail() - Atualização dedicada de imagem (PATCH /courses/:id/thumbnail)", () => {
@@ -243,6 +376,34 @@ describe("coursesService - CRUD Unit Tests", () => {
 
       assert.equal(patchMock.mock.callCount(), 1);
       assert.equal(result.thumbnail, "https://supabase.co/storage/v1/object/public/course-thumbnails/thumb.png");
+    });
+
+    it("deve realizar fallback defensivo via PUT com JSON quando PATCH multipart falhar com status 500", async () => {
+      const dummyFile = new File(["test-img"], "thumb.png", { type: "image/png" });
+      const mockResponse = {
+        id: "10",
+        title: "Curso com Fallback de Imagem",
+        thumbnail: "data:image/png;base64,dGVzdC1pbWc=",
+      };
+
+      patchMock.mock.mockImplementation(async (url: string) => {
+        assert.equal(url, "/courses/10/thumbnail");
+        throw new Error("Request failed with status code 500 (Upload indisponível no Supabase)");
+      });
+
+      putMock.mock.mockImplementation(async (url: string, data: unknown) => {
+        assert.equal(url, "/courses/10");
+        const body = data as Record<string, unknown>;
+        assert.ok(typeof body.thumbnail === "string");
+        assert.ok((body.thumbnail as string).startsWith("data:image/png;base64,"));
+        return { data: mockResponse, status: 200 };
+      });
+
+      const result = await coursesService.uploadThumbnail("10", dummyFile);
+
+      assert.equal(patchMock.mock.callCount(), 1);
+      assert.equal(putMock.mock.callCount(), 1);
+      assert.equal(result.thumbnail, "data:image/png;base64,dGVzdC1pbWc=");
     });
   });
 

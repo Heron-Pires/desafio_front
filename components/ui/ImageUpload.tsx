@@ -31,7 +31,10 @@ export function ImageUpload({
 }: ImageUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [typeError, setTypeError] = useState<string | null>(null);
+  const [failedPreviewSrc, setFailedPreviewSrc] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isBroken = Boolean(value && failedPreviewSrc === value);
 
   /**
    * Valida se o arquivo possui um tipo MIME e extensão de imagem permitida.
@@ -62,23 +65,103 @@ export function ImageUpload({
     return true;
   };
 
-  const processFile = (file: File) => {
+  /**
+   * Redimensiona e otimiza a imagem em um canvas no cliente para garantir que
+   * a string Base64 fique com segurança abaixo do limite de 100KB do Express (prevenindo erro 413 Payload Too Large).
+   */
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined" || typeof document === "undefined") {
+        resolve("");
+        return;
+      }
+
+      if (file.type === "image/svg+xml") {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve((e.target?.result as string) || "");
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rawUrl = e.target?.result as string;
+        if (!rawUrl) {
+          resolve("");
+          return;
+        }
+
+        const img = new window.Image();
+        img.onload = () => {
+          const maxDim = 500;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(rawUrl);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compressão progressiva para garantir tamanho < 60KB (Express default: 100KB)
+          let quality = 0.75;
+          let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+          while (dataUrl.length > 60 * 1024 && quality > 0.25) {
+            quality -= 0.15;
+            dataUrl = canvas.toDataURL("image/jpeg", quality);
+          }
+
+          resolve(dataUrl);
+        };
+        img.onerror = () => resolve(rawUrl);
+        img.src = rawUrl;
+      };
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const processFile = async (file: File) => {
     if (!validateFileType(file)) {
       return;
     }
 
+    setFailedPreviewSrc(null);
+
     // Notifica o componente pai sobre o objeto File binário
     onFileChange?.(file);
 
-    // Gera o preview base64 para exibição imediata
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) {
-        onChange(result);
-      }
-    };
-    reader.readAsDataURL(file);
+    // Otimiza e gera o preview base64 compacto para exibição imediata e fallback resiliente (< 60KB)
+    const optimized = await compressImage(file);
+    if (optimized) {
+      onChange(optimized);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (result) {
+          onChange(result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +199,7 @@ export function ImageUpload({
     onChange("");
     onFileChange?.(null);
     setTypeError(null);
+    setFailedPreviewSrc(null);
     if (inputRef.current) {
       inputRef.current.value = "";
     }
@@ -176,18 +260,28 @@ export function ImageUpload({
         <div className="image-upload-preview-box">
           {value ? (
             <div className="relative h-full w-full">
-              <Image
-                src={value}
-                alt="Pré-visualização da imagem"
-                fill
-                unoptimized
-                className="object-cover"
-              />
+              {!isBroken ? (
+                <Image
+                  src={value}
+                  alt="Pré-visualização da imagem"
+                  fill
+                  unoptimized
+                  onError={() => setFailedPreviewSrc(value)}
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center bg-neutral-950 text-neutral-500">
+                  <span className="text-xs font-medium text-amber-400/80">Imagem indisponível</span>
+                  <span className="text-[10px] text-neutral-500 mt-1">
+                    Clique no X para remover
+                  </span>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={handleRemove}
                 title="Remover imagem"
-                className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900/80 text-neutral-200 backdrop-blur transition hover:bg-red-600 hover:text-white"
+                className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900/80 text-neutral-200 backdrop-blur transition hover:bg-red-600 hover:text-white z-10"
               >
                 &times;
               </button>

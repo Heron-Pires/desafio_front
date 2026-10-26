@@ -89,6 +89,7 @@ export interface CreateCourseDTO {
   category?: string;
   description?: string;
   thumbnail?: string | File | null;
+  fallbackThumbnail?: string;
   level?: string;
 }
 
@@ -97,5 +98,6 @@ export interface UpdateCourseDTO {
   category?: string;
   description?: string;
   thumbnail?: string | File | null;
+  fallbackThumbnail?: string;
   level?: string;
 }
